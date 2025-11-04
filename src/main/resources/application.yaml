@@ -52,7 +52,7 @@ cloudinary:
   api-secret: ${CLOUDINARY_API_SECRET}
 
 app:
-  base-url: ${APP_BASE_URL:https://luminous-unity-production.up.railway.app}
+  base-url: ${APP_BASE_URL:https://lumixmovie-server-production.up.railway.app}
   frontend:
     registration-result-url: ${FRONTEND_REGISTRATION_RESULT_URL:https://localhost:4200/registration-pending}
   oauth2:
