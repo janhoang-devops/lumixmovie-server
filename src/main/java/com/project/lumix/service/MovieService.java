@@ -151,7 +151,7 @@ public class MovieService {
                 .orElseThrow(() -> new AppException(ErrorCode.MOVIE_NOT_EXISTED));
         return movieMapper.toMovieDetailResponse(movie);
     }
-
+    
     public Page<MovieDetailResponse> searchMovies(MovieSearchRequest request, Pageable pageable) {
         log.info("Searching for movies with criteria: {}", request);
         Specification<Movie> spec = MovieSpecification.fromRequest(request);

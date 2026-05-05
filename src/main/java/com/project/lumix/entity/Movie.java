@@ -54,5 +54,4 @@ public class Movie {
     )
     @JsonIgnore
     private Set<User> favoritedByUsers;
-
 }

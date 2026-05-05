@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:mysql://${MYSQLHOST:localhost}:${MYSQLPORT:3306}/${MYSQL_DATABASE:lumix}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://${MYSQLHOST:localhost}:${MYSQLPORT:3308}/${MYSQL_DATABASE:lumix}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     username: ${MYSQLUSER:root}
-    password: ${MYSQL_ROOT_PASSWORD}
+    password: ${MYSQL_ROOT_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -34,7 +34,7 @@ spring:
             issuer-uri: https://accounts.google.com
 
 server:
-  port: ${PORT:8888}
+  port: ${PORT:8080}
   servlet:
     context-path: /lumix
     encoding:
