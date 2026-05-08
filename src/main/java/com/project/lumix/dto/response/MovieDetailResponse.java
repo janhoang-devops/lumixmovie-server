@@ -25,4 +25,5 @@ public class MovieDetailResponse {
     private String duration;
     private String country;
     private LocalDate releaseDate;
+    private Boolean isPremium;
 }

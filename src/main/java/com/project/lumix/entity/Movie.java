@@ -42,6 +42,8 @@ public class Movie {
             updatable = false
     )
     private LocalDateTime createdAt;
+    @Column(columnDefinition = "boolean default false")
+    private Boolean isPremium = false;
     @OneToMany(
             mappedBy = "movie",
             cascade = {CascadeType.ALL},

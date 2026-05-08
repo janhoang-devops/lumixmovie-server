@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -54,6 +55,7 @@ public class MomoService {
     private final MomoApi momoApi;
     private final PaymentRepository paymentRepository;
     private final UserRepository userRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     // ==================== PUBLIC METHODS ====================
 
@@ -208,6 +210,7 @@ public class MomoService {
             log.info("Thanh toan THANH CONG: orderId={}, transId={}", payment.getOrderId(), ipnRequest.getTransId());
             // TODO: Tuỳ use-case, có thể mở khoá quyền truy cập phim/tài khoản premium ở
             // đây
+            messagingTemplate.convertAndSend("/topic/payments", payment);
         } else {
             payment.setStatus(PaymentStatus.FAILED);
             log.warn("Thanh toan THAT BAI: orderId={}, resultCode={}, message={}",
@@ -267,6 +270,7 @@ public class MomoService {
             payment.setTransId(System.currentTimeMillis());
             paymentRepository.save(payment);
             log.info("[DEV] Da cap nhat trang thai SUCCESS cho orderId={}", orderId);
+            messagingTemplate.convertAndSend("/topic/payments", payment);
         }
 
         return PaymentResponse.builder()

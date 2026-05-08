@@ -32,4 +32,5 @@ public class MovieCreateRequest {
     private String country;
     private @NotNull(message = "Release date is mandatory")
     LocalDate releaseDate;
+    private Boolean isPremium;
 }

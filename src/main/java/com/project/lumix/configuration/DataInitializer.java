@@ -47,8 +47,9 @@ public class DataInitializer implements CommandLineRunner {
                 return;
             }
 
-            List<Map<String, Object>> movieDataList =
-                    objectMapper.readValue(inputStream, new TypeReference<List<Map<String, Object>>>() {});
+            List<Map<String, Object>> movieDataList = objectMapper.readValue(inputStream,
+                    new TypeReference<List<Map<String, Object>>>() {
+                    });
 
             for (Map<String, Object> movieData : movieDataList) {
                 Movie movie = new Movie();
@@ -60,6 +61,30 @@ public class DataInitializer implements CommandLineRunner {
                 movie.setCountry((String) movieData.get("country"));
                 movie.setPosterUrl((String) movieData.get("posterUrl"));
                 movie.setVideoUrl((String) movieData.get("videoUrl"));
+
+                // Set isPremium:
+                // 1. From JSON if exists
+                // 2. Or if year is 2024, 2025
+                // 3. Or specific titles
+                if (movieData.containsKey("isPremium")) {
+                    movie.setIsPremium((Boolean) movieData.get("isPremium"));
+                } else {
+                    String title = movie.getTitle(); 
+                    String year = movie.getYear();
+                    boolean isNew = year != null && (year.equals("2024") || year.equals("2025"));
+                    boolean isSpecial = title != null && (title.contains("Kingsman") ||
+                            title.contains("Joker") ||
+                            title.contains("Wonka") ||
+                            title.contains("Doctor Strange") ||
+                            title.contains("Phù Thủy Tối Thượng") ||
+                            title.contains("Khi Cuộc Đời Cho Bạn Quả Quýt") ||
+                            title.contains("Bàn Tay Diệt Quỷ") ||
+                            title.contains("Hành Tinh Cát 2") ||
+                            title.contains("Cộng Sự Bất Đắc Dĩ") ||
+                            title.contains("Người Đàn Bà Ngoài Sân") ||
+                            title.contains("Gia Tài Của Ngoại"));
+                    movie.setIsPremium(isNew || isSpecial);
+                }
 
                 // genres
                 List<String> genreNames = (List<String>) movieData.get("genres");
@@ -108,4 +133,3 @@ public class DataInitializer implements CommandLineRunner {
                 .orElseGet(() -> directorRepository.save(new Director(null, name)));
     }
 }
-

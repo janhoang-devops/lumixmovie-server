@@ -23,4 +23,5 @@ public class MovieUpdateRequest {
     private String duration;
     private String country;
     private LocalDate releaseDate;
+    private Boolean isPremium;
 }
