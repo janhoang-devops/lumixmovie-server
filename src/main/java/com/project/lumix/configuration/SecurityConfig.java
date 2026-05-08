@@ -28,61 +28,64 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private static final String[] PUBLIC_GET_ENDPOINTS = {
-            "/movie/**",
-            "/auth/verify",
-            "/admin/comments"
-    };
+        private static final String[] PUBLIC_GET_ENDPOINTS = {
+                        "/movie/**",
+                        "/auth/verify",
+                        "/admin/comments",
+                        "/api/momo/status/**"
+        };
 
-    private static final String[] PUBLIC_POST_ENDPOINTS = {
-            "/auth/login",
-            "/auth/refresh",
-            "/auth/introspect",
-            "/users"
-    };
+        private static final String[] PUBLIC_POST_ENDPOINTS = {
+                        "/auth/login",
+                        "/auth/refresh",
+                        "/auth/introspect",
+                        "/users",
+                        "/api/momo/ipn-handler",
+                        "/api/momo/dev/simulate/**"
+        };
 
-    private static final String[] MISC_PUBLIC_ENDPOINTS = {
-            "/login/oauth2/**",
-            "/oauth2/authorization/**"
-    };
-    private final AuthenticationSuccessHandler oAuthLoginSuccessHandler;
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+        private static final String[] MISC_PUBLIC_ENDPOINTS = {
+                        "/login/oauth2/**",
+                        "/oauth2/authorization/**"
+        };
+        private final AuthenticationSuccessHandler oAuthLoginSuccessHandler;
+        private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, PUBLIC_POST_ENDPOINTS).permitAll()
-                        .requestMatchers(HttpMethod.GET, PUBLIC_GET_ENDPOINTS).permitAll()
-                        .requestMatchers(MISC_PUBLIC_ENDPOINTS).permitAll()
-                        .anyRequest().authenticated()
-                )
-                .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
-                )
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .oauth2Login(oauth2 -> oauth2.successHandler(oAuthLoginSuccessHandler));
+        @Bean
+        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+                http.csrf(AbstractHttpConfigurer::disable)
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                                .authorizeHttpRequests(auth -> auth
+                                                .requestMatchers(HttpMethod.POST, PUBLIC_POST_ENDPOINTS).permitAll()
+                                                .requestMatchers(HttpMethod.GET, PUBLIC_GET_ENDPOINTS).permitAll()
+                                                .requestMatchers(MISC_PUBLIC_ENDPOINTS).permitAll()
+                                                .anyRequest().authenticated())
+                                .exceptionHandling(exception -> exception
+                                                .authenticationEntryPoint(
+                                                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                .oauth2Login(oauth2 -> oauth2.successHandler(oAuthLoginSuccessHandler));
 
-        return http.build();
-    }
+                return http.build();
+        }
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:4200","https://lumixmovie-film.vercel.app"));
-        config.addAllowedMethod("*");
-        config.addAllowedHeader("*");
-        config.setAllowCredentials(true);
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration config = new CorsConfiguration();
+                config.setAllowedOrigins(List.of("http://localhost:4200", "https://lumixmovie-film.vercel.app"));
+                config.addAllowedMethod("*");
+                config.addAllowedHeader("*");
+                config.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
-    }
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", config);
+                return source;
+        }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(10);
-    }
+        @Bean
+        public PasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder(10);
+        }
 }

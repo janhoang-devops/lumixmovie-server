@@ -52,13 +52,22 @@ cloudinary:
   api-secret: ${CLOUDINARY_API_SECRET}
 
 app:
-  base-url: ${APP_BASE_URL:https://lumixmovie-server-production.up.railway.app}
+  base-url: ${APP_BASE_URL:http://localhost:8080}
   frontend:
     registration-result-url: ${FRONTEND_REGISTRATION_RESULT_URL:https://localhost:4200/registration-pending}
   oauth2:
     redirect-url:
       success: ${OAUTH_SUCCESS_URL:https://localhost:4200/login-success}
       error: ${OAUTH_ERROR_URL:https://localhost:4200/login-error}
+
+momo:
+  partner-code: MOMOLRJZ20181206
+  return-url: ${RETURN_URL:http://localhost:3000/}
+  end-point: https://test-payment.momo.vn/v2/gateway/api
+  ipn-url: ${IPN_URL:http://localhost:8080/lumix/api/momo/ipn-handler}
+  access-key: ${ACCESS_KEY:mTCKt9W3eU1m39TW}
+  secret-key: ${SECRET_KEY:SetA5RDnLHvt51AULf51DyauxUo3kDU6}
+  request-type: captureWallet
 
 cookie:
   secure: true

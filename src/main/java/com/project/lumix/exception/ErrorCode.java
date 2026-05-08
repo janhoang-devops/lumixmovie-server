@@ -41,6 +41,11 @@ public enum ErrorCode {
     GENRE_NOT_FOUND(1016, "Genre not found", HttpStatus.NOT_FOUND),
     GENRE_EXISTED(1017, "Genre existed", HttpStatus.BAD_REQUEST),
 
+    // ====== PAYMENT / MOMO ======
+    PAYMENT_NOT_FOUND(3001, "Payment not found", HttpStatus.NOT_FOUND),
+    MOMO_CREATE_PAYMENT_FAILED(3002, "Failed to create MoMo payment", HttpStatus.BAD_GATEWAY),
+    MOMO_INVALID_SIGNATURE(3003, "Invalid MoMo signature", HttpStatus.UNAUTHORIZED),
+
     // ====== SERVER / SYSTEM ======
     INTERNAL_SERVER_ERROR(5000, "Internal server error", HttpStatus.INTERNAL_SERVER_ERROR),
     DATABASE_ERROR(5001, "Database error occurred", HttpStatus.INTERNAL_SERVER_ERROR);

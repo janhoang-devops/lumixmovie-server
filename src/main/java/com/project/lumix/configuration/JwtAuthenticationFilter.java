@@ -39,12 +39,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         String token = getTokenFromCookie(request);
-        log.info("Token:{}",token);
+        log.info("Token:{}", token);
 
         if (StringUtils.hasText(token) && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
-                IntrospectResponse introspectResponse =
-                        jwtService.introspect(IntrospectRequest.builder().token(token).build());
+                IntrospectResponse introspectResponse = jwtService
+                        .introspect(IntrospectRequest.builder().token(token).build());
 
                 if (introspectResponse.isValid()) {
                     SignedJWT signedJWT = SignedJWT.parse(token);
@@ -61,8 +61,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             .authorities(authorities.toArray(new String[0]))
                             .build();
 
-                    UsernamePasswordAuthenticationToken authenticationToken =
-                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
                     authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                     SecurityContextHolder.getContext().setAuthentication(authenticationToken);
@@ -83,7 +83,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private String getTokenFromCookie(HttpServletRequest request) {
-        if (request.getCookies() == null) return null;
+        if (request.getCookies() == null)
+            return null;
         return Arrays.stream(request.getCookies())
                 .filter(cookie -> "accessToken".equals(cookie.getName()))
                 .map(Cookie::getValue)
