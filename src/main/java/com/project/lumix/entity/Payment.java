@@ -1,6 +1,7 @@
 package com.project.lumix.entity;
 
 import com.project.lumix.enums.PaymentStatus;
+import com.project.lumix.enums.PlanType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -85,6 +86,12 @@ public class Payment {
     /**
      * User liên kết với đơn thanh toán này (nullable nếu không cần auth)
      */
+    /**
+     * Loại gói hội viên (MONTHLY / QUARTERLY / YEARLY)
+     */
+    @Enumerated(EnumType.STRING)
+    private PlanType planType;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;

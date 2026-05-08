@@ -8,6 +8,7 @@ import com.project.lumix.dto.response.PaymentResponse;
 import com.project.lumix.entity.Payment;
 import com.project.lumix.entity.User;
 import com.project.lumix.enums.PaymentStatus;
+import com.project.lumix.enums.PlanType;
 import com.project.lumix.exception.AppException;
 import com.project.lumix.exception.ErrorCode;
 import com.project.lumix.repository.MomoApi;
@@ -23,6 +24,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -57,26 +59,49 @@ public class MomoService {
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
+    // ==================== PLAN CONFIG ====================
+
+    /** Bảng giá gói hội viên (đơn vị VNĐ) */
+    private static final long PRICE_MONTHLY    = 59_000L;
+    private static final long PRICE_QUARTERLY  = 129_000L;
+    private static final long PRICE_YEARLY     = 499_000L;
+
     // ==================== PUBLIC METHODS ====================
 
     /**
-     * Tạo QR thanh toán MoMo.
-     * Lưu đơn hàng vào DB với trạng thái PENDING trước khi gọi API MoMo.
+     * Tạo QR thanh toán MoMo cho gói hội viên Premium.
+     * Amount và orderInfo được tính từ planType, không nhận từ Frontend.
      *
-     * @param request thông tin đơn hàng từ Frontend
+     * @param request thông tin đăng ký gói (planType, userId)
      * @return PaymentResponse chứa payUrl, deeplink, qrCodeUrl
      */
     @Transactional
     public PaymentResponse createPayment(CreatePaymentRequest request) {
-        // 1. Sinh orderId và requestId
-        String orderId = UUID.randomUUID().toString();
-        String requestId = UUID.randomUUID().toString();
-        String orderInfo = (request.getOrderInfo() != null && !request.getOrderInfo().isBlank())
-                ? request.getOrderInfo()
-                : "Thanh toan don hang: " + orderId;
-        long amount = request.getAmount() != null ? request.getAmount() : 100000L;
+        // 1. Xác định amount và mô tả theo planType
+        PlanType planType = request.getPlanType() != null ? request.getPlanType() : PlanType.MONTHLY;
+        long amount;
+        String orderInfo;
 
-        // 2. Tạo và ký rawSignature
+        switch (planType) {
+            case QUARTERLY -> {
+                amount = PRICE_QUARTERLY;
+                orderInfo = "Dang ky goi Hoi Vien 3 Thang - Lumix Premium";
+            }
+            case YEARLY -> {
+                amount = PRICE_YEARLY;
+                orderInfo = "Dang ky goi Hoi Vien 1 Nam - Lumix Premium";
+            }
+            default -> {
+                amount = PRICE_MONTHLY;
+                orderInfo = "Dang ky goi Hoi Vien 1 Thang - Lumix Premium";
+            }
+        }
+
+        // 2. Sinh orderId và requestId
+        String orderId  = UUID.randomUUID().toString();
+        String requestId = UUID.randomUUID().toString();
+
+        // 3. Tạo và ký rawSignature
         String rawSignature = buildRawSignature(orderId, requestId, orderInfo, amount);
         String signature;
         try {
@@ -87,24 +112,26 @@ public class MomoService {
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
 
-        // 3. Lưu đơn hàng PENDING vào DB trước khi gọi MoMo
+        // 4. Tìm user
         User user = null;
         if (request.getUserId() != null && !request.getUserId().isBlank()) {
             user = userRepository.findById(request.getUserId()).orElse(null);
         }
 
+        // 5. Lưu đơn hàng PENDING vào DB
         Payment payment = Payment.builder()
                 .orderId(orderId)
                 .requestId(requestId)
                 .amount(amount)
                 .orderInfo(orderInfo)
+                .planType(planType)
                 .status(PaymentStatus.PENDING)
                 .user(user)
                 .build();
         paymentRepository.save(payment);
-        log.info("Da luu don hang PENDING: orderId={}", orderId);
+        log.info("Da luu don hang PENDING: orderId={}, planType={}", orderId, planType);
 
-        // 4. Gọi API MoMo để lấy payUrl / qrCodeUrl
+        // 6. Gọi API MoMo để lấy payUrl / qrCodeUrl
         CreateMomoRequest momoRequest = CreateMomoRequest.builder()
                 .partnerCode(PARTNER_CODE)
                 .requestType(REQUEST_TYPE)
@@ -122,7 +149,6 @@ public class MomoService {
         CreateMomoResponse momoResponse = momoApi.createMomoQr(momoRequest);
 
         if (momoResponse == null || momoResponse.getResultCode() != 0) {
-            // Cập nhật trạng thái FAILED nếu MoMo không trả về thành công
             payment.setStatus(PaymentStatus.FAILED);
             payment.setMessage(momoResponse != null ? momoResponse.getMessage() : "Khong nhan duoc phan hoi tu MoMo");
             paymentRepository.save(payment);
@@ -132,7 +158,7 @@ public class MomoService {
             throw new AppException(ErrorCode.MOMO_CREATE_PAYMENT_FAILED);
         }
 
-        // 5. Lưu payUrl / deeplink / qrCodeUrl vào DB
+        // 7. Lưu payUrl / deeplink / qrCodeUrl vào DB
         payment.setPayUrl(momoResponse.getPayUrl());
         payment.setDeeplink(momoResponse.getDeeplink());
         payment.setQrCodeUrl(momoResponse.getQrCodeUrl());
@@ -141,7 +167,7 @@ public class MomoService {
         paymentRepository.save(payment);
         log.info("Da cap nhat payUrl cho don hang: orderId={}", orderId);
 
-        // 6. Map sang PaymentResponse và trả về cho Frontend
+        // 8. Trả về response
         return PaymentResponse.builder()
                 .paymentId(payment.getId())
                 .orderId(orderId)
@@ -151,6 +177,7 @@ public class MomoService {
                 .payUrl(momoResponse.getPayUrl())
                 .deeplink(momoResponse.getDeeplink())
                 .qrCodeUrl(momoResponse.getQrCodeUrl())
+                .planType(planType)
                 .createdAt(payment.getCreatedAt())
                 .build();
     }
@@ -208,8 +235,10 @@ public class MomoService {
         if (ipnRequest.getResultCode() == 0) {
             payment.setStatus(PaymentStatus.SUCCESS);
             log.info("Thanh toan THANH CONG: orderId={}, transId={}", payment.getOrderId(), ipnRequest.getTransId());
-            // TODO: Tuỳ use-case, có thể mở khoá quyền truy cập phim/tài khoản premium ở
-            // đây
+
+            // Kích hoạt gói hội viên Premium cho user
+            activatePremiumMembership(payment);
+
             messagingTemplate.convertAndSend("/topic/payments", payment);
         } else {
             payment.setStatus(PaymentStatus.FAILED);
@@ -218,6 +247,39 @@ public class MomoService {
         }
 
         paymentRepository.save(payment);
+    }
+
+    /**
+     * Kích hoạt gói hội viên Premium cho user sau khi thanh toán thành công.
+     * Nếu user đang còn hạn, thời gian sẽ được cộng thêm vào thay vì ghi đè.
+     *
+     * @param payment đơn hàng vừa thanh toán thành công
+     */
+    private void activatePremiumMembership(Payment payment) {
+        if (payment.getUser() == null) {
+            log.warn("Don hang khong co userId, khong the kich hoat Premium: orderId={}", payment.getOrderId());
+            return;
+        }
+
+        User user = payment.getUser();
+        PlanType planType = payment.getPlanType() != null ? payment.getPlanType() : PlanType.MONTHLY;
+
+        // Tính ngày bắt đầu: nếu user đang còn hạn thì cộng thêm từ ngày hết hạn cũ
+        LocalDateTime baseDate = (user.getPremiumExpiredAt() != null && user.getPremiumExpiredAt().isAfter(LocalDateTime.now()))
+                ? user.getPremiumExpiredAt()
+                : LocalDateTime.now();
+
+        LocalDateTime newExpiredAt = switch (planType) {
+            case QUARTERLY -> baseDate.plusMonths(3);
+            case YEARLY    -> baseDate.plusYears(1);
+            default        -> baseDate.plusMonths(1);
+        };
+
+        user.setPremium(true);
+        user.setPremiumExpiredAt(newExpiredAt);
+        userRepository.save(user);
+
+        log.info("Da kich hoat Premium cho userId={}, planType={}, het han={}", user.getUserId(), planType, newExpiredAt);
     }
 
     /**
@@ -270,6 +332,8 @@ public class MomoService {
             payment.setTransId(System.currentTimeMillis());
             paymentRepository.save(payment);
             log.info("[DEV] Da cap nhat trang thai SUCCESS cho orderId={}", orderId);
+            // Kích hoạt Premium membership (giống IPN thật)
+            activatePremiumMembership(payment);
             messagingTemplate.convertAndSend("/topic/payments", payment);
         }
 
@@ -282,6 +346,7 @@ public class MomoService {
                 .payUrl(payment.getPayUrl())
                 .deeplink(payment.getDeeplink())
                 .qrCodeUrl(payment.getQrCodeUrl())
+                .planType(payment.getPlanType())
                 .createdAt(payment.getCreatedAt())
                 .build();
     }

@@ -25,4 +25,11 @@ public class UserResponse {
     private String enabled;
     private String provider;
     private Set<RoleResponse> roles;
+
+    /** Trạng thái hội viên Premium */
+    private boolean isPremium;
+
+    /** Thời điểm hết hạn gói hội viên */
+    @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
+    private LocalDateTime premiumExpiredAt;
 }

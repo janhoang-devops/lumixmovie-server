@@ -1,6 +1,7 @@
 package com.project.lumix.dto.response;
 
 import com.project.lumix.enums.PaymentStatus;
+import com.project.lumix.enums.PlanType;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -31,4 +32,7 @@ public class PaymentResponse {
     private String qrCodeUrl;
 
     private LocalDateTime createdAt;
+
+    /** Loại gói hội viên đăng ký (MONTHLY / QUARTERLY / YEARLY) */
+    private PlanType planType;
 }

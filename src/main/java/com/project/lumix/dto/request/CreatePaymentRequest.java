@@ -1,11 +1,10 @@
 package com.project.lumix.dto.request;
 
+import com.project.lumix.enums.PlanType;
 import lombok.*;
 
 /**
- * DTO nhận từ Frontend khi muốn tạo QR thanh toán MoMo.
- * userId là optional — nếu hệ thống yêu cầu đăng nhập thì truyền vào,
- * nếu không thì bỏ qua.
+ * DTO nhận từ Frontend khi muốn tạo QR thanh toán MoMo để mua gói hội viên.
  */
 @Getter
 @Setter
@@ -15,17 +14,12 @@ import lombok.*;
 public class CreatePaymentRequest {
 
     /**
-     * Số tiền cần thanh toán (đơn vị VNĐ, tối thiểu 1000đ theo MoMo sandbox)
+     * Loại gói hội viên muốn đăng ký (MONTHLY / QUARTERLY / YEARLY)
      */
-    private Long amount;
+    private PlanType planType;
 
     /**
-     * Mô tả đơn hàng (hiển thị trên app MoMo)
-     */
-    private String orderInfo;
-
-    /**
-     * ID người dùng thực hiện thanh toán (optional)
+     * ID người dùng thực hiện thanh toán
      */
     private String userId;
 }
