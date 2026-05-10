@@ -64,7 +64,7 @@ momo:
   partner-code: MOMOLRJZ20181206
   return-url: ${RETURN_URL:http://localhost:4200/premium-movies}
   end-point: https://test-payment.momo.vn/v2/gateway/api
-  ipn-url: ${IPN_URL:http://localhost:8080/lumix/api/momo/ipn-handler}
+  ipn-url: ${IPN_URL:${app.base-url}/lumix/api/momo/ipn-handler}
   access-key: ${ACCESS_KEY:mTCKt9W3eU1m39TW}
   secret-key: ${SECRET_KEY:SetA5RDnLHvt51AULf51DyauxUo3kDU6}
   request-type: captureWallet

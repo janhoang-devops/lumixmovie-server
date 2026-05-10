@@ -210,9 +210,11 @@ public class MomoService {
         }
 
         if (!expectedSignature.equals(ipnRequest.getSignature())) {
-            log.error("Chu ky IPN khong hop le! orderId={}", ipnRequest.getOrderId());
+            log.error("❌ Chu ky IPN khong hop le! orderId={}. Expected: {}, Received: {}", 
+                    ipnRequest.getOrderId(), expectedSignature, ipnRequest.getSignature());
             throw new AppException(ErrorCode.MOMO_INVALID_SIGNATURE);
         }
+        log.info("✅ Chu ky IPN hop le cho orderId={}", ipnRequest.getOrderId());
 
         // 2. Tìm đơn hàng trong DB
         Payment payment = paymentRepository.findByOrderId(ipnRequest.getOrderId())
@@ -237,7 +239,7 @@ public class MomoService {
 
         if (ipnRequest.getResultCode() == 0) {
             payment.setStatus(PaymentStatus.SUCCESS);
-            log.info("Thanh toan THANH CONG: orderId={}, transId={}", payment.getOrderId(), ipnRequest.getTransId());
+            log.info("🎉 Thanh toan THANH CONG (resultCode=0): orderId={}, transId={}", payment.getOrderId(), ipnRequest.getTransId());
 
             // Kích hoạt gói hội viên Premium cho user
             activatePremiumMembership(payment);
@@ -245,8 +247,8 @@ public class MomoService {
             messagingTemplate.convertAndSend("/topic/payments", payment);
         } else {
             payment.setStatus(PaymentStatus.FAILED);
-            log.warn("Thanh toan THAT BAI: orderId={}, resultCode={}, message={}",
-                    payment.getOrderId(), ipnRequest.getResultCode(), ipnRequest.getMessage());
+            log.warn("❌ Thanh toan THAT BAI (resultCode={}): orderId={}, message={}",
+                    ipnRequest.getResultCode(), payment.getOrderId(), ipnRequest.getMessage());
         }
 
         paymentRepository.save(payment);
