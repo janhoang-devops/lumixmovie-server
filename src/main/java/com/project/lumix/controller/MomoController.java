@@ -3,12 +3,18 @@ package com.project.lumix.controller;
 import com.project.lumix.dto.request.CreatePaymentRequest;
 import com.project.lumix.dto.request.MomoIPNRequest;
 import com.project.lumix.dto.response.ApiResponse;
+import com.project.lumix.dto.response.PaymentAdminResponse;
 import com.project.lumix.dto.response.PaymentResponse;
+import com.project.lumix.dto.response.PaymentStatsResponse;
+import com.project.lumix.enums.PaymentStatus;
 import com.project.lumix.service.MomoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/momo")
@@ -22,7 +28,7 @@ public class MomoController {
      * POST /api/momo/create
      * Frontend gọi để khởi tạo phiên thanh toán và nhận payUrl / qrCodeUrl.
      *
-     * @param request thông tin đơn hàng (amount, orderInfo, userId)
+     * @param request thông tin đơn hàng (planType, userId)
      * @return PaymentResponse chứa payUrl để redirect người dùng
      */
     @PostMapping("/create")
@@ -85,6 +91,57 @@ public class MomoController {
                 .code(1000)
                 .message("[DEV] Simulate thanh toan thanh cong")
                 .result(response)
+                .build();
+    }
+
+    // ==================== ADMIN APIs ====================
+
+    /**
+     * GET /api/momo/admin/all
+     * [ADMIN] Lấy toàn bộ lịch sử giao dịch, mới nhất trước.
+     * Tuỳ chọn: lọc theo status qua query param ?status=SUCCESS|PENDING|FAILED
+     */
+    @GetMapping("/admin/all")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ApiResponse<List<PaymentAdminResponse>> getAllPayments(
+            @RequestParam(required = false) PaymentStatus status) {
+
+        List<PaymentAdminResponse> payments = (status != null)
+                ? momoService.getPaymentsByStatus(status)
+                : momoService.getAllPayments();
+
+        return ApiResponse.<List<PaymentAdminResponse>>builder()
+                .code(1000)
+                .message("Lay danh sach giao dich thanh cong")
+                .result(payments)
+                .build();
+    }
+
+    /**
+     * GET /api/momo/admin/stats
+     * [ADMIN] Thống kê tổng: tổng đơn, doanh thu, phân loại trạng thái.
+     */
+    @GetMapping("/admin/stats")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ApiResponse<PaymentStatsResponse> getPaymentStats() {
+        return ApiResponse.<PaymentStatsResponse>builder()
+                .code(1000)
+                .message("Lay thong ke giao dich thanh cong")
+                .result(momoService.getPaymentStats())
+                .build();
+    }
+
+    /**
+     * GET /api/momo/admin/user/{userId}
+     * [ADMIN] Lấy lịch sử giao dịch của một user cụ thể.
+     */
+    @GetMapping("/admin/user/{userId}")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ApiResponse<List<PaymentAdminResponse>> getPaymentsByUser(@PathVariable String userId) {
+        return ApiResponse.<List<PaymentAdminResponse>>builder()
+                .code(1000)
+                .message("Lay giao dich cua user thanh cong")
+                .result(momoService.getPaymentsByUser(userId))
                 .build();
     }
 }

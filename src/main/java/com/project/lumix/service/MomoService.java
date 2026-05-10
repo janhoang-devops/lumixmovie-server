@@ -4,7 +4,9 @@ import com.project.lumix.dto.request.CreateMomoRequest;
 import com.project.lumix.dto.request.CreatePaymentRequest;
 import com.project.lumix.dto.request.MomoIPNRequest;
 import com.project.lumix.dto.response.CreateMomoResponse;
+import com.project.lumix.dto.response.PaymentAdminResponse;
 import com.project.lumix.dto.response.PaymentResponse;
+import com.project.lumix.dto.response.PaymentStatsResponse;
 import com.project.lumix.entity.Payment;
 import com.project.lumix.entity.User;
 import com.project.lumix.enums.PaymentStatus;
@@ -25,6 +27,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -351,7 +354,87 @@ public class MomoService {
                 .build();
     }
 
+    // ==================== ADMIN METHODS ====================
+
+    /**
+     * [ADMIN] Lấy toàn bộ lịch sử giao dịch, sắp xếp mới nhất trước.
+     */
+    public List<PaymentAdminResponse> getAllPayments() {
+        return paymentRepository.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(this::toAdminResponse)
+                .toList();
+    }
+
+    /**
+     * [ADMIN] Lọc giao dịch theo trạng thái.
+     *
+     * @param status SUCCESS | PENDING | FAILED
+     */
+    public List<PaymentAdminResponse> getPaymentsByStatus(PaymentStatus status) {
+        return paymentRepository.findByStatusOrderByCreatedAtDesc(status)
+                .stream()
+                .map(this::toAdminResponse)
+                .toList();
+    }
+
+    /**
+     * [ADMIN] Thống kê tổng hợp: tổng đơn, doanh thu, phân loại status.
+     */
+    public PaymentStatsResponse getPaymentStats() {
+        long total   = paymentRepository.count();
+        long success = paymentRepository.countByStatus(PaymentStatus.SUCCESS);
+        long pending = paymentRepository.countByStatus(PaymentStatus.PENDING);
+        long failed  = paymentRepository.countByStatus(PaymentStatus.FAILED);
+        long revenue = paymentRepository.sumSuccessAmount();
+
+        return PaymentStatsResponse.builder()
+                .totalOrders(total)
+                .successOrders(success)
+                .pendingOrders(pending)
+                .failedOrders(failed)
+                .totalRevenue(revenue)
+                .build();
+    }
+
+    /**
+     * [ADMIN / USER] Lấy lịch sử giao dịch của một user cụ thể.
+     *
+     * @param userId ID của user cần tra
+     */
+    public List<PaymentAdminResponse> getPaymentsByUser(String userId) {
+        return paymentRepository.findByUserId(userId)
+                .stream()
+                .map(this::toAdminResponse)
+                .toList();
+    }
+
     // ==================== PRIVATE HELPERS ====================
+
+    /** Map Payment entity → PaymentAdminResponse */
+    private PaymentAdminResponse toAdminResponse(Payment p) {
+        String userId    = p.getUser() != null ? p.getUser().getUserId()  : null;
+        String userEmail = p.getUser() != null ? p.getUser().getEmail()   : null;
+        String username  = p.getUser() != null ? p.getUser().getUsername(): null;
+
+        return PaymentAdminResponse.builder()
+                .paymentId(p.getId())
+                .orderId(p.getOrderId())
+                .amount(p.getAmount())
+                .orderInfo(p.getOrderInfo())
+                .status(p.getStatus())
+                .planType(p.getPlanType())
+                .userId(userId)
+                .userEmail(userEmail)
+                .username(username)
+                .transId(p.getTransId())
+                .resultCode(p.getResultCode())
+                .message(p.getMessage())
+                .createdAt(p.getCreatedAt())
+                .updatedAt(p.getUpdatedAt())
+                .build();
+    }
+
 
     /**
      * Xây dựng rawSignature khi TẠO đơn thanh toán (gọi API MoMo).
