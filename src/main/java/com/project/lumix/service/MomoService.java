@@ -3,10 +3,12 @@ package com.project.lumix.service;
 import com.project.lumix.dto.request.CreateMomoRequest;
 import com.project.lumix.dto.request.CreatePaymentRequest;
 import com.project.lumix.dto.request.MomoIPNRequest;
+import com.project.lumix.dto.request.QueryMomoRequest;
 import com.project.lumix.dto.response.CreateMomoResponse;
 import com.project.lumix.dto.response.PaymentAdminResponse;
 import com.project.lumix.dto.response.PaymentResponse;
 import com.project.lumix.dto.response.PaymentStatsResponse;
+import com.project.lumix.dto.response.QueryMomoResponse;
 import com.project.lumix.entity.Payment;
 import com.project.lumix.entity.User;
 import com.project.lumix.enums.PaymentStatus;
@@ -298,6 +300,11 @@ public class MomoService {
         Payment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
 
+        // Chủ động hỏi MoMo nếu database vẫn là PENDING
+        if (payment.getStatus() == PaymentStatus.PENDING) {
+            payment = syncStatusWithMomo(payment);
+        }
+
         return PaymentResponse.builder()
                 .paymentId(payment.getId())
                 .orderId(payment.getOrderId())
@@ -412,6 +419,46 @@ public class MomoService {
     }
 
     // ==================== PRIVATE HELPERS ====================
+
+    /**
+     * Chủ động gọi API truy vấn trạng thái của MoMo nếu IPN bị miss.
+     */
+    private Payment syncStatusWithMomo(Payment payment) {
+        try {
+            String rawSignature = "accessKey=" + ACCESS_KEY 
+                    + "&orderId=" + payment.getOrderId() 
+                    + "&partnerCode=" + PARTNER_CODE 
+                    + "&requestId=" + payment.getRequestId();
+            String signature = signHmacSHA256(rawSignature, SECRET_KEY);
+
+            QueryMomoRequest request = QueryMomoRequest.builder()
+                    .partnerCode(PARTNER_CODE)
+                    .requestId(payment.getRequestId())
+                    .orderId(payment.getOrderId())
+                    .signature(signature)
+                    .lang("vi")
+                    .build();
+
+            QueryMomoResponse response = momoApi.queryPayment(request);
+
+            if (response != null && response.getResultCode() != null) {
+                if (response.getResultCode() == 0) {
+                    payment.setStatus(PaymentStatus.SUCCESS);
+                    log.info("🔍 Dong bo MoMo: Thanh toan THANH CONG: orderId={}", payment.getOrderId());
+                    activatePremiumMembership(payment);
+                    paymentRepository.save(payment);
+                } else if (response.getResultCode() != 1000) { 
+                    // 1000: Giao dịch đã khởi tạo, chờ người dùng thanh toán
+                    payment.setStatus(PaymentStatus.FAILED);
+                    log.info("🔍 Dong bo MoMo: Thanh toan THAT BAI (resultCode={}): orderId={}", response.getResultCode(), payment.getOrderId());
+                    paymentRepository.save(payment);
+                }
+            }
+        } catch (Exception e) {
+            log.error("❌ Loi khi query status tu MoMo: {}", e.getMessage());
+        }
+        return payment;
+    }
 
     /** Map Payment entity → PaymentAdminResponse */
     private PaymentAdminResponse toAdminResponse(Payment p) {
