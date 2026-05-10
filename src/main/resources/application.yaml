@@ -62,7 +62,7 @@ app:
 
 momo:
   partner-code: MOMOLRJZ20181206
-  return-url: ${RETURN_URL:http://localhost:4200/premium-movies}
+  return-url: ${RETURN_URL:http://localhost:4200/premium}
   end-point: https://test-payment.momo.vn/v2/gateway/api
   ipn-url: ${IPN_URL:${app.base-url}/lumix/api/momo/ipn-handler}
   access-key: ${ACCESS_KEY:mTCKt9W3eU1m39TW}
