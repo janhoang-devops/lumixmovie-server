@@ -296,6 +296,7 @@ public class MomoService {
      * @param orderId mã đơn hàng
      * @return PaymentResponse với status hiện tại
      */
+    @Transactional
     public PaymentResponse checkPaymentStatus(String orderId) {
         Payment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
@@ -368,6 +369,7 @@ public class MomoService {
     /**
      * [ADMIN] Lấy toàn bộ lịch sử giao dịch, sắp xếp mới nhất trước.
      */
+    @Transactional(readOnly = true)
     public List<PaymentAdminResponse> getAllPayments() {
         return paymentRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
@@ -380,7 +382,9 @@ public class MomoService {
      *
      * @param status SUCCESS | PENDING | FAILED
      */
+    @Transactional(readOnly = true)
     public List<PaymentAdminResponse> getPaymentsByStatus(PaymentStatus status) {
+
         return paymentRepository.findByStatusOrderByCreatedAtDesc(status)
                 .stream()
                 .map(this::toAdminResponse)
@@ -390,6 +394,7 @@ public class MomoService {
     /**
      * [ADMIN] Thống kê tổng hợp: tổng đơn, doanh thu, phân loại status.
      */
+    @Transactional(readOnly = true)
     public PaymentStatsResponse getPaymentStats() {
         long total   = paymentRepository.count();
         long success = paymentRepository.countByStatus(PaymentStatus.SUCCESS);
@@ -411,6 +416,7 @@ public class MomoService {
      *
      * @param userId ID của user cần tra
      */
+    @Transactional(readOnly = true)
     public List<PaymentAdminResponse> getPaymentsByUser(String userId) {
         return paymentRepository.findByUserId(userId)
                 .stream()
