@@ -77,9 +77,9 @@ public class User {
     private Provider provider;
 
     /** Trạng thái hội viên Premium (true = đang hoạt động) */
-    @Column(columnDefinition = "boolean default false")
+    @Column(name = "is_premium", columnDefinition = "boolean default false")
     @Builder.Default
-    private boolean isPremium = false;
+    private boolean premium = false;
 
     /** Thời điểm hết hạn gói hội viên Premium (null = chưa từng đăng ký) */
     private LocalDateTime premiumExpiredAt;

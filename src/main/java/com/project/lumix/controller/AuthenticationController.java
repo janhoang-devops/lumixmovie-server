@@ -87,7 +87,7 @@ public class AuthenticationController {
                 .userId(user.getUserId())
                 .username(user.getUsername())
                 .role(user.getRoles().stream().map(Role::getName).collect(Collectors.toSet()))
-                .isPremium(user.isPremium())
+                .premium(user.isPremium())
                 .premiumExpiredAt(user.getPremiumExpiredAt())
                 .build();
 

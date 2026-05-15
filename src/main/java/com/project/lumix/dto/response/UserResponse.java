@@ -1,6 +1,7 @@
 package com.project.lumix.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -27,7 +28,8 @@ public class UserResponse {
     private Set<RoleResponse> roles;
 
     /** Trạng thái hội viên Premium */
-    private boolean isPremium;
+    @JsonProperty("isPremium")
+    private boolean premium;
 
     /** Thời điểm hết hạn gói hội viên */
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
